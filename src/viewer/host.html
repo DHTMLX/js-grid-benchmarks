@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grid Host</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, Arial, sans-serif; }
+  #grid-container { width: 100%; height: 100%; }
+
+
+  /* Change column: arrow via ::before pseudo-element */
+  .chg { font-weight: 400; }
+  .chg-up { color: #28a745; }
+  .chg-up::after { content: "⬆"; margin-left: 4px; }
+  .chg-dn { color: #dc3545; }
+  .chg-dn::after { content: "⬇"; margin-left: 4px; }
+  .chg-zero { color: #868e96; }
+
+  /* Two grids have no row-height option and take it from CSS. Both read the same
+     --bench-row-height that host.js sets from ROW_HEIGHT, so neither can drift from the
+     three that take it as a configuration value.
+
+     Kendo sizes its virtual scrollbar from the average row height.
+     https://www.telerik.com/kendo-jquery-ui/documentation/controls/data-management/grid/scrolling/virtual-scrolling */
+  .k-virtual-scrollable-wrap tr,
+  .k-grid .k-table-row { height: var(--bench-row-height); }
+
+  /* DevExtreme. This was applied per row in onRowPrepared until stage C1 — a jQuery call
+     and an inline style write on every row, inside the scroll path, that no other grid
+     paid for. */
+  .dx-datagrid .dx-row,
+  .dx-datagrid .dx-row > td { height: var(--bench-row-height); }
+</style>
+</head>
+<body>
+<div id="grid-container"></div>
+<script type="module" src="./host.js"></script>
+</body>
+</html>

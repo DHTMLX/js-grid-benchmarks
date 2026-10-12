@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grid Speed Benchmark — Viewer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── toolbar ── */
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: #1a1f2e;
+    border-bottom: 1px solid #2d3748;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  #toolbar .logo {
+    font-weight: 700;
+    font-size: 14px;
+    color: #63b3ed;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+
+  .ctrl-group { display: flex; align-items: center; gap: 6px; }
+  .ctrl-group label { font-size: 12px; color: #a0aec0; white-space: nowrap; }
+
+  select, input[type=number] {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    color: #e2e8f0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+  select:focus, input:focus { border-color: #63b3ed; }
+
+  .scenario-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pill {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px solid #4a5568;
+    background: #2d3748;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .pill:hover  { border-color: #63b3ed; color: #e2e8f0; }
+  .pill.active { background: #2b6cb0; border-color: #63b3ed; color: #fff; }
+
+  #btn-open {
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #2b6cb0;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #btn-open:hover { background: #3182ce; }
+
+  /* ── grid frame ── */
+  #frame-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #grid-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  /* ── status bar ── */
+  #statusbar {
+    padding: 4px 16px;
+    font-size: 11px;
+    color: #718096;
+    background: #1a1f2e;
+    border-top: 1px solid #2d3748;
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  #statusbar span { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="logo">⚡ Grid Benchmark</div>
+
+  <div class="ctrl-group">
+    <label>Grid</label>
+    <select id="sel-grid"></select>
+  </div>
+
+  <div class="ctrl-group">
+    <label>Rows</label>
+    <input id="inp-size" type="number" value="50" min="10" max="500000" step="50" style="width:90px"/>
+  </div>
+
+  <button id="btn-open">Load ▶</button>
+
+  <div class="ctrl-group">
+    <label>Scenario</label>
+    <div class="scenario-pills" id="scenario-pills"></div>
+  </div>
+</div>
+
+<div id="frame-wrap">
+  <iframe id="grid-frame" title="Grid preview"></iframe>
+</div>
+
+<div id="statusbar">
+  URL: <span id="st-url">—</span>
+  &nbsp;&nbsp;Grid: <span id="st-grid">—</span>
+  &nbsp;&nbsp;Scenario: <span id="st-scenario">—</span>
+  &nbsp;&nbsp;Rows: <span id="st-size">—</span>
+</div>
+
+<script type="module">
+import { grids }     from '../core/registry.js';
+import { scenarios } from '../config/scenarios.js';
+
+// ── Populate grid select ──
+const selGrid = document.getElementById('sel-grid');
+for (const g of grids) {
+  const opt = document.createElement('option');
+  opt.value = g.id;
+  opt.textContent = g.name;
+  selGrid.appendChild(opt);
+}
+
+// ── Populate scenario pills ──
+const pillsEl = document.getElementById('scenario-pills');
+const DEFAULT_SCENARIO = Object.keys(scenarios)[0];
+let activeScenario = DEFAULT_SCENARIO;
+
+for (const [id, sc] of Object.entries(scenarios)) {
+  const pill = document.createElement('button');
+  pill.className = 'pill' + (id === DEFAULT_SCENARIO ? ' active' : '');
+  pill.textContent = sc.name;
+  pill.dataset.id = id;
+  pill.title = sc.name;
+  pill.onclick = () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    activeScenario = id;
+  };
+  pillsEl.appendChild(pill);
+}
+
+// ── Restore last selection from URL ──
+const params = new URLSearchParams(location.search);
+if (params.get('grid'))     selGrid.value = params.get('grid');
+if (params.get('scenario')) {
+  activeScenario = params.get('scenario');
+  document.querySelectorAll('.pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.id === activeScenario);
+  });
+}
+if (params.get('size')) document.getElementById('inp-size').value = params.get('size');
+
+// ── Load grid ──
+function loadGrid() {
+  const gridId   = selGrid.value;
+  const size     = document.getElementById('inp-size').value;
+  const scenario = activeScenario;
+
+  const url = `/host.html?grid=${gridId}&scenario=${scenario}&size=${size}`;
+
+  document.getElementById('grid-frame').src = url;
+  document.getElementById('st-url').textContent = url;
+  document.getElementById('st-grid').textContent = gridId;
+  document.getElementById('st-scenario').textContent = scenario;
+  document.getElementById('st-size').textContent = Number(size).toLocaleString();
+
+  // Update browser URL so you can refresh/share
+  history.replaceState({}, '', `/?grid=${gridId}&scenario=${scenario}&size=${size}`);
+}
+
+document.getElementById('btn-open').addEventListener('click', loadGrid);
+
+// Load on Enter key in size input
+document.getElementById('inp-size').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadGrid();
+});
+
+// Always auto-load on page open (uses URL params if present, otherwise current toolbar values)
+loadGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+node_modules
+dist
+*.log
+
+# Benchmark outputs (regenerated locally)
+src/data/datasets/
+results/latest.json
+results/history/
+results/report.html
+results/report.md
+
+vendor/
+src/viewer/public/
+
+vite.config.js.timestamp-*
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
