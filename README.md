@@ -3,7 +3,7 @@
 Performance figures for five JavaScript data grids — AG Grid, Bryntum Grid, DevExtreme DataGrid,
 DHTMLX Grid and Kendo UI Grid — measured on the same data, the same row height and the same scroll.
 
-![](https://raw.githubusercontent.com/DHTMLX/public-files/refs/heads/main/article/js-grid-performance-benchmark.png)
+![](https://raw.githubusercontent.com/DHTMLX/public-files/refs/heads/main/article/js-grid-benchmark.png)
 
 
 **100 000 rows, ten columns with HTML in cells:**
