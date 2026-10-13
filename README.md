@@ -6,18 +6,18 @@ DHTMLX Grid and Kendo UI Grid — measured on the same data, the same row height
 ![](https://raw.githubusercontent.com/DHTMLX/public-files/refs/heads/main/article/js-grid-benchmark.png)
 
 
-**100 000 rows, ten columns with HTML in cells:**
+**100 000 rows, 20 columns with HTML in cells:**
 
-| Grid | Initial render, ms | Median frame, ms | P95 frame, ms | Jump, ms | Page heap, MB | FPS |
-| --- | --- | --- | --- | --- | --- | --- |
-| DHTMLX | 73.8 | 16.7 | 17.4 | 35.8 | 12.97 | 60 |
-| Kendo | 91.1 | 16.5 | 55.6 | 89.5 | 18.42 | 50 |
-| DevExtreme | 178.1 | 15.9 | 26.34 | 36.3 | 23.94 | 60 |
-| AG Grid | 255.8 | 16.6 | 18.93 | 49.6 | 35.07 | 60 |
-| Bryntum | 838.8 | 16.7 | 19.4 | 25.7 | 38.94 | 60 |
+| Grid | Median frame, ms | P95 frame, ms | Worst frame, ms | FPS |
+| --- | --- | --- | --- | --- |
+| AG Grid | 16.7 | 26.19 | 69 | 57 |
+| Bryntum | 16.6 | 23.1 | 38.5 | 60 |
+| DevExtreme | 18.7 | 32.65 | 72.8 | 51 |
+| DHTMLX | 16.6 | 21.23 | 41.6 | 60 |
+| Kendo | 16.9 | 95.26 | 111.5 | 35 |
 
-Four of the five report 60 FPS, and every median frame sits at the display's floor. The P95 column is
-where they separate: 17 ms to 56 ms here, and 13× across the full matrix. [More below](#results).
+Every median frame sits within 16.6–18.7 ms, close to the display's floor. The P95 column is where the
+grids separate: 21 ms to 95 ms here, and 13× across the full matrix. [More below](#results).
 
 ## Why another grid benchmark
 
@@ -26,7 +26,7 @@ dataset size. One number can't tell two very different problems apart.
 
 Here are two of them from this round. The first grid has a typical frame of 16.9 ms, the floor a 60 Hz
 display allows, and one frame in twenty at 95 ms. It scrolls smoothly, then stalls at a page boundary.
-The second has a *median* of 96 ms, so every frame is late. Average either one into FPS and they land
+The second has a *median* of 95.5 ms, so every frame is late. Average either one into FPS and they land
 in roughly the same place.
 
 So this suite publishes the distribution instead: median, 95th percentile and worst frame, pooled over
@@ -98,39 +98,42 @@ What produced these numbers:
 That's the table at the top of this file. Every grid built itself, scrolled 50 000 px, then jumped to
 row 90 000.
 
-Four grids share a median frame at the refresh floor and report 60 FPS. Stop the comparison at those
-two columns and there's nothing left to tell them apart.
+The median frame sits within 16.6–18.7 ms for all five, and two grids report 60 FPS. Stop the
+comparison at those two columns and there's little left to tell them apart.
 
-Kendo shows why the percentile matters. Its typical frame is 16.5 ms, and one frame in twenty takes
-55.6 ms. The cost doesn't spread evenly across frames, so its FPS figure of 50 averages the smooth
-stretches together with the slow ones. For this cell the harness also records 82 rows in the DOM
-against a 27-row viewport, the highest row count of the five.
+Kendo shows why the percentile matters. Its typical frame is 16.9 ms, and one frame in twenty takes
+95.26 ms. The cost doesn't spread evenly across frames, so its FPS figure of 35 averages the smooth
+stretches together with the slow ones.
+
+The worst frame is the largest single spike across every run of the cell. It's one frame, so it
+doesn't describe typical scrolling. Read it beside P95, never instead of it.
 
 ### From 10 000 to 800 000 rows
 
-The same scenario at both ends of the size axis.
+Build time in milliseconds, ten template columns, at every size.
 
-| Grid | Render @10k | Render @800k | Growth | P95 @10k | P95 @800k |
+| Grid | 10k | 50k | 100k | 200k | 800k |
 | --- | --- | --- | --- | --- | --- |
-| DHTMLX | 55.0 | 242.8 | 4.4× | 17.3 | 17.2 |
-| Kendo | 93.1 | 115.2 | 1.2× | 54.2 | 58.8 |
-| DevExtreme | 180.5 | 186.1 | 1.03× | 26.3 | 27.7 |
-| AG Grid | 148.6 | 1149.4 | 7.7× | 17.8 | 46.3 |
-| Bryntum | 268.6 | 5330.2 | 19.8× | 19.5 | 19.2 |
+| AG Grid | 148.6 | 199.4 | 255.8 | 386.1 | 1149.4 |
+| Bryntum | 268.6 | 532.3 | 838.8 | 1503.1 | 5330.2 |
+| DevExtreme | 180.5 | 182.8 | 178.1 | 179.6 | 186.1 |
+| DHTMLX | 55 | 65.5 | 73.8 | 93.3 | 242.8 |
+| Kendo | 93.1 | 93.5 | 91.1 | 96.5 | 115.2 |
 
-DevExtreme's render time moves by 6 ms between 10 000 rows and 800 000, Kendo's by 22 ms. Their
-grid-side heap at the largest size is 11.6 MB and 11.3 MB.
+From 10 000 rows to 800 000, build time grows 1.03× for DevExtreme, 1.2× for Kendo, 4.4× for DHTMLX,
+7.7× for AG Grid and 19.8× for Bryntum. DevExtreme's render time moves by 6 ms across the whole axis,
+Kendo's by 22 ms. Their grid-side heap at the largest size is 11.6 MB and 11.3 MB.
 
 AG Grid's P95 is 17.8 ms at 10 000 rows and 2.6× that at 800 000. Its *median* frame
 moves too, to 31.9 ms, so at that size the frames are late consistently rather than occasionally. With
-40 columns and three of them frozen, the median reaches 96 ms and the same 50 000 px take 30.8 s.
-Frozen columns add nothing measurable up to 200 000 rows and +173 ms of P95 at 800 000. It's the only
-grid here whose frozen-column cost depends on dataset size.
+40 columns and three of them frozen, the median reaches 95.5 ms and the same 50 000 px take 30.8 s.
+Frozen columns add nothing measurable up to 200 000 rows and +172.56 ms of P95 at 800 000. It's the
+only grid here whose frozen-column cost depends on dataset size.
 
 Bryntum sits at the other end of the render column. It spends 5.3 s building itself at 800 000 rows and
-12.3 s with 40 columns, the longest in the set, and its grid-side heap at that point is 762 MB. Its
+12.3 s with 40 columns, the longest in the set, and its grid-side heap at that point is 761.66 MB. Its
 scroll figures don't follow: P95 is 19.5 ms at 10 000 rows and 19.2 ms at 800 000. DHTMLX holds that
-same shape at a lower level, 17.3 ms and 17.2 ms, and builds itself in 243 ms.
+same shape at a lower level, 17.3 ms and 17.2 ms, and builds itself in 242.8 ms.
 
 ## What the round shows
 
@@ -138,11 +141,11 @@ Five grids, five approaches, and five different points where the numbers change 
 
 | Grid | What the figures describe | Where they change |
 | --- | --- | --- |
-| **DHTMLX** | flat across every axis: median 16.6–16.7 ms in all 40 cells, P95 17.1–23.1 ms, fastest render at every size | no point in this matrix |
-| **Bryntum** | scroll figures independent of dataset size, P95 18.4–33.3 ms | construction and memory: 12.3 s to first row and 762 MB at 800k with 40 columns |
+| **DHTMLX** | flat across every axis: median 16.6–16.7 ms in all 40 cells, P95 17.1–23.05 ms, fastest render through 200 000 rows | no point in this matrix |
+| **Bryntum** | scroll figures independent of dataset size, P95 18.4–33.32 ms | construction and memory: 12.3 s to build and 761.66 MB at 800k with 40 columns |
 | **AG Grid** | P95 17.4–29.2 ms through 200 000 rows | 800 000 rows, where the median frame moves, most of all with frozen columns |
 | **DevExtreme** | render time and heap flat across the size axis | a per-frame cost throughout: P95 26–40 ms in every cell, and 1.5–2.2× DHTMLX's time over the same distance |
-| **Kendo** | frame distribution scaling with column count | 20 columns and up; P95 174 ms at 40 |
+| **Kendo** | frame distribution scaling with column count | 20 columns and up; P95 173.69 ms at 40 |
 
 Which column to read depends on the application. A grid that has to appear with a large dataset already
 loaded is reading the render column; one that has to stay smooth under continuous scrolling is reading
@@ -194,7 +197,7 @@ archive.
 | --- | --- |
 | `npm run bench` | Runs the matrix in a visible Chromium window, writing one file per cell to `results/history/` as it finishes. `npm run bench -- --help` lists every flag. |
 | `npm run report` | Reads that history and writes `results/report.html` and `results/report.md` from one aggregate, so the two can't disagree. |
-| `npm run inspect` | Diagnostic views over the same history, as plain text: spread, failure reasons, outliers. |
+| `npm run inspect` | Diagnostic views over the same history, as plain text: the full metric set, failure reasons, outliers. The run-to-run spread is in the report and the history files, see [METHODOLOGY.md](METHODOLOGY.md#spread-and-where-to-find-it). |
 | `npm run dev` | Dataset server on `127.0.0.1:8081` and the Vite viewer on `localhost:5173`, for watching a grid run a scenario without measuring it. `npm run data-server` and `npm run viewer` start the halves separately. |
 | `npm run lint` | ESLint. `npm run lint:fix` applies what it can. |
 | `npm test` | `node:test` over `tests/unit/`. Needs no browser and no `vendor/`. |

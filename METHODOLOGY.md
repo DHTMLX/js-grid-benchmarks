@@ -240,7 +240,7 @@ different number of rows could report a clean 60 FPS.
 | `n = 1` | refused unless `--allowSingleRun` is passed explicitly |
 | Published central value | the median across runs |
 | Percentiles | linearly interpolated, over the pooled frame series from all runs |
-| Spread | run count and standard deviation printed beside every figure |
+| Spread | mean, standard deviation, min and max across runs, stored for every figure; the report prints the standard deviation beside it. See [below](#spread-and-where-to-find-it) |
 | Warmup | a full unmeasured pass before measurement, so the first grid measured isn't the only cold one |
 | Order | randomizable with `--order=random`; the order used is recorded |
 | Isolation | a fresh browser context per grid, forced GC before measurement |
@@ -252,6 +252,36 @@ come off it. Interpolation keeps the two distinct at the frame counts a single s
 Isolation and order matter over a long matrix. One shared browser context would carry JIT state and
 heap fragmentation from the first grid into the fifth. A fixed order would map machine warm-up and
 thermal drift onto grid identity.
+
+### Spread, and where to find it
+
+Every figure in a results file carries the spread it came from. Each metric of a cell is stored as an
+object with these fields:
+
+| Field | What it holds |
+| --- | --- |
+| `value` | the published figure: the median across runs, or for a frame-time figure the value over the pooled series |
+| `mean` | the mean across runs |
+| `stddev` | the standard deviation across runs. It divides by n, not n−1: these are all the runs there are, not a sample drawn from more of them |
+| `min`, `max` | the lowest and the highest run |
+| `pooled` | `true` on the figures that come from the pooled frame series: `fps`, `avgFrameMs`, `medianFrameMs`, `p95FrameMs`, `p99FrameMs`, `maxFrameMs` |
+
+For a pooled figure, `value` and the spread come from different series. `value` is computed over every
+frame of every run together. `mean`, `stddev`, `min` and `max` come from the same figure computed for
+each run on that run's frames alone. So `min` and `max` of `p95FrameMs` are the lowest and the highest
+per-run P95, and `value` doesn't have to equal their median. A per-run P95 rests on one scroll's
+frames, so it moves more from run to run than the pooled figure does.
+
+Where each part shows up:
+
+| Where | What it shows |
+| --- | --- |
+| `results/report.md` | `value ±stddev` beside every figure. The `±` is left out when the runs agree exactly |
+| `results/report.html` | a whisker of ±1 standard deviation on every bar, the standard deviation in the tooltip of the value label, and the run count under the chart |
+| `results/history/<timestamp>_<size>.json` | everything: `value`, `mean`, `stddev`, `min` and `max` for every metric under `summaries[]`, and each run as measured, every frame time included, under `summaries[].raw` |
+| `npm run inspect` | the published `value` only, no spread |
+
+`min` and `max` are in the history files only. One file holds one scenario at one size, for every grid.
 
 ### Refresh-rate validation
 
